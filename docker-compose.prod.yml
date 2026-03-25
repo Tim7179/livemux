@@ -1,0 +1,34 @@
+# Production overrides – use with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+version: "3.9"
+
+services:
+  nginx:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+
+  api:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  redis:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  # ── Optional: second API node for horizontal scale ────────
+  # api2:
+  #   extends:
+  #     service: api
+  #   container_name: streaming-api-2
