@@ -23,6 +23,21 @@ router.post('/', (req, res, next) => {
   }
 });
 
+// POST /api/stream-keys/batch  { keys: [ { name, description? }, ... ] }
+router.post('/batch', (req, res, next) => {
+  try {
+    const body = req.body || {};
+    if (!Array.isArray(body.keys)) {
+      return res.status(400).json({ error: '`keys` array is required' });
+    }
+    const result = svc.createKeysBatch(body.keys);
+    const status = result.errors.length === 0 ? 201 : (result.created.length === 0 ? 400 : 207);
+    res.status(status).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/stream-keys/:key
 router.get('/:key', (req, res) => {
   const record = svc.getKey(req.params.key);

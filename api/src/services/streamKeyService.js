@@ -53,4 +53,44 @@ function validateKey(key) {
   return row !== undefined && row.is_active === 1;
 }
 
-module.exports = { listKeys, getKey, createKey, updateKey, deleteKey, validateKey };
+/**
+ * createKeysBatch(rows)
+ * rows: Array of { name, description? }
+ * Returns: { created: StreamKey[], errors: { index, name?, error }[] }
+ */
+function createKeysBatch(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw Object.assign(new Error('`keys` must be a non-empty array'), { status: 400 });
+  }
+  if (rows.length > 500) {
+    throw Object.assign(new Error('Batch size must not exceed 500 stream keys'), { status: 400 });
+  }
+
+  const db      = getDb();
+  const created = [];
+  const errors  = [];
+
+  const insert = db.prepare('INSERT INTO stream_keys (key, name, description) VALUES (?, ?, ?)');
+  const select = db.prepare('SELECT id, key, name, description, is_active, created_at FROM stream_keys WHERE key = ?');
+
+  const runBatch = db.transaction(() => {
+    rows.forEach((row, i) => {
+      try {
+        if (!row.name || typeof row.name !== 'string' || row.name.trim() === '') {
+          throw Object.assign(new Error('`name` is required'), { status: 400 });
+        }
+        const key  = uuidv4().replace(/-/g, '');
+        const desc = typeof row.description === 'string' ? row.description : '';
+        insert.run(key, row.name.trim(), desc);
+        created.push(select.get(key));
+      } catch (err) {
+        errors.push({ index: i, name: row.name, error: err.message });
+      }
+    });
+  });
+
+  runBatch();
+  return { created, errors };
+}
+
+module.exports = { listKeys, getKey, createKey, updateKey, deleteKey, validateKey, createKeysBatch };

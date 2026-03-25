@@ -41,6 +41,14 @@ function getDb() {
       status      TEXT    DEFAULT 'ready',
       created_at  TEXT    DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      username   TEXT    UNIQUE NOT NULL,
+      email      TEXT    UNIQUE,
+      note       TEXT    DEFAULT '',
+      created_at TEXT    DEFAULT (datetime('now'))
+    );
   `);
 
   return _db;

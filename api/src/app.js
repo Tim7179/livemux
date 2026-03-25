@@ -8,6 +8,8 @@ const authRoutes       = require('./routes/auth');
 const streamKeyRoutes  = require('./routes/streamKeys');
 const streamRoutes     = require('./routes/streams');
 const recordingRoutes  = require('./routes/recordings');
+const adminRoutes      = require('./routes/admin');
+const userRoutes       = require('./routes/users');
 
 const app  = express();
 const PORT = parseInt(process.env.API_PORT || '3000', 10);
@@ -15,6 +17,7 @@ const PORT = parseInt(process.env.API_PORT || '3000', 10);
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(morgan('dev'));
 app.use(express.json());
+app.use(express.text({ type: 'text/csv', limit: '2mb' }));  // for CSV batch imports
 app.use(express.urlencoded({ extended: false }));   // for nginx-rtmp form hooks
 
 // ── Health ────────────────────────────────────────────────────────────────────
@@ -27,6 +30,8 @@ app.use('/api/auth',        authRoutes);
 app.use('/api/stream-keys', streamKeyRoutes);
 app.use('/api/streams',     streamRoutes);
 app.use('/api/recordings',  recordingRoutes);
+app.use('/api/admin',       adminRoutes);
+app.use('/api/users',       userRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
