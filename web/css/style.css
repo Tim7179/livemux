@@ -1,0 +1,197 @@
+/* ── Base ──────────────────────────────────────────────────────────────── */
+:root {
+  --bg:        #0d0d0d;
+  --bg-card:   #181818;
+  --bg-sidebar:#111;
+  --border:    #2a2a2a;
+  --text:      #e0e0e0;
+  --text-muted:#888;
+  --accent:    #e53935;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────────────── */
+#sidebar {
+  width: 230px;
+  min-height: 100vh;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#sidebar .nav-link {
+  color: var(--text-muted);
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: background .15s, color .15s;
+}
+
+#sidebar .nav-link:hover,
+#sidebar .nav-link.active {
+  background: #222;
+  color: #fff;
+}
+
+#sidebar .navbar-brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #fff;
+  text-decoration: none;
+}
+
+/* ── Cards ─────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.stat-card .card-body {
+  padding: 1.2rem;
+}
+
+.stat-label {
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted);
+  margin-bottom: .4rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+/* ── Tables ────────────────────────────────────────────────────────────── */
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text);
+  --bs-table-border-color: var(--border);
+  --bs-table-hover-bg: #1f1f1f;
+}
+
+.table thead th {
+  color: var(--text-muted);
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  border-bottom-color: var(--border);
+}
+
+/* ── Stream preview card ───────────────────────────────────────────────── */
+.stream-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.stream-card .stream-preview {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  object-fit: contain;
+}
+
+.stream-card .stream-meta {
+  padding: .75rem;
+}
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .7rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 4px;
+  padding: 2px 7px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.live-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── Multi-view grid ───────────────────────────────────────────────────── */
+.multiview-grid {
+  display: grid;
+  gap: 4px;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.multiview-grid.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.multiview-grid.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.multiview-grid.grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+.multiview-cell {
+  position: relative;
+  aspect-ratio: 16/9;
+  background: #111;
+  overflow: hidden;
+}
+
+.multiview-cell video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.multiview-cell .cell-label {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  font-size: .7rem;
+  color: rgba(255,255,255,.8);
+  background: rgba(0,0,0,.5);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.multiview-cell .cell-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #333;
+  font-size: .8rem;
+}
+
+/* ── Key badge ─────────────────────────────────────────────────────────── */
+.key-badge {
+  font-family: monospace;
+  font-size: .8rem;
+  background: #1e1e1e;
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: all;
+}
+
+/* ── Misc ──────────────────────────────────────────────────────────────── */
+h4, h5 { color: #fff; }
+.modal-content { color: var(--text); }
+.form-control::placeholder { color: var(--text-muted); }
