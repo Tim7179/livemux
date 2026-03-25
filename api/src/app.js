@@ -34,6 +34,16 @@ app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 // ── Error handler ─────────────────────────────────────────────────────────────
 app.use(errorHandler);
 
+// ── Startup security checks ───────────────────────────────────────────────────
+const WEAK_KEYS = new Set(['change_me_in_production', 'secret', 'admin', 'password', '']);
+if (require.main === module) {
+  const adminKey = process.env.ADMIN_API_KEY || '';
+  if (!adminKey || WEAK_KEYS.has(adminKey.toLowerCase())) {
+    console.warn('[SECURITY] WARNING: ADMIN_API_KEY is not set or is a weak default value.');
+    console.warn('[SECURITY] Set a strong, random ADMIN_API_KEY in your .env file before production use.');
+  }
+}
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 if (require.main === module) {
   app.listen(PORT, () => {

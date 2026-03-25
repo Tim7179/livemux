@@ -19,6 +19,7 @@ services:
     environment:
       - HLS_FRAGMENT_SECONDS=${HLS_FRAGMENT_SECONDS:-2}
       - HLS_PLAYLIST_LENGTH=${HLS_PLAYLIST_LENGTH:-10}
+      - INTERNAL_TOKEN=${INTERNAL_TOKEN:-${ADMIN_API_KEY}}
     networks:
       - streaming
 

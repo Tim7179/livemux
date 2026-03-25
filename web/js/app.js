@@ -196,15 +196,16 @@ async function loadRecordings() {
         <td class="font-monospace small">${escHtml(r.filename)}</td>
         <td>${escHtml(r.stream_key)}</td>
         <td>${formatBytes(r.size_bytes)}</td>
+        <td>${recordingStatusBadge(r.status)}</td>
         <td class="text-muted small">${new Date(r.created_at).toLocaleString()}</td>
         <td>
-          <button class="btn btn-sm btn-outline-danger"
+          <button class="btn btn-sm btn-outline-danger" ${r.status === 'converting' ? 'disabled' : ''}
             onclick="deleteRecording('${escHtml(r.filename)}')">
             <i class="bi bi-trash"></i>
           </button>
         </td>
       </tr>
-    `).join('') || '<tr><td colspan="5" class="text-muted">No recordings yet.</td></tr>';
+    `).join('') || '<tr><td colspan="6" class="text-muted">No recordings yet.</td></tr>';
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" class="text-danger">${escHtml(err.message)}</td></tr>`;
   }
@@ -254,6 +255,14 @@ function escHtml(str) {
 
 function copyText(text) {
   navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
+}
+
+function recordingStatusBadge(status) {
+  switch (status) {
+    case 'converting': return '<span class="badge bg-warning text-dark"><i class="bi bi-arrow-repeat me-1"></i>Converting</span>';
+    case 'failed':     return '<span class="badge bg-danger">Failed</span>';
+    default:           return '<span class="badge bg-success">Ready</span>';
+  }
 }
 
 function formatBytes(b) {

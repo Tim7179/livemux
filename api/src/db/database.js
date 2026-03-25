@@ -38,6 +38,7 @@ function getDb() {
       stream_key  TEXT    NOT NULL,
       filename    TEXT    NOT NULL,
       size_bytes  INTEGER DEFAULT 0,
+      status      TEXT    DEFAULT 'ready',
       created_at  TEXT    DEFAULT (datetime('now'))
     );
   `);
