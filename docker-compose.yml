@@ -49,7 +49,7 @@ services:
 
   # ── Redis (active stream state / scaling) ─────────────────
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     container_name: streaming-redis
     command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
     volumes:
