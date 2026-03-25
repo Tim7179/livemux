@@ -30,8 +30,8 @@ OBS (RTMP push)
 
 | Service | Image | Ports | Role |
 |---------|-------|-------|------|
-| `nginx` | debian:bookworm-slim + nginx-rtmp | 1935, 80 | RTMP ingest, HLS, static files |
-| `api`   | node:22-alpine | (internal 3000) | REST API |
+| `nginx` | debian:trixie-slim + nginx-rtmp | 1935, 80 | RTMP ingest, HLS, static files |
+| `api`   | node:24-alpine | (internal 3000) | REST API |
 | `redis` | redis:8-alpine | (internal 6379) | Active stream state |
 
 ## Directory Structure
