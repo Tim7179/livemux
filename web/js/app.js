@@ -5,7 +5,7 @@ const API_BASE = '/api';
 const REFRESH_INTERVAL_MS = 10_000;
 
 // ── State ───────────────────────────────────────────────────────────────────
-let adminKey = localStorage.getItem('adminKey') || '';
+let adminKey = sessionStorage.getItem('adminKey') || '';
 const hlsInstances = new Map();   // streamKey → Hls instance
 
 // ── Bootstrap helpers ───────────────────────────────────────────────────────
@@ -33,7 +33,20 @@ async function apiFetch(path, opts = {}) {
 }
 
 // ── Page navigation ──────────────────────────────────────────────────────────
+// refreshPage: reload data only, without destroying active HLS streams.
+// Used by the auto-refresh interval so streams are not interrupted.
+function refreshPage(name) {
+  switch (name) {
+    case 'dashboard':    loadDashboard();    break;
+    case 'multiview':    loadMultiview();    break;
+    case 'stream-keys':  loadStreamKeys();   break;
+    case 'recordings':   loadRecordings();   break;
+    case 'users':        loadUsers();        break;
+  }
+}
+
 function showPage(name) {
+  destroyAllHls();
   document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('d-none'));
   document.getElementById(`page-${name}`).classList.remove('d-none');
   document.querySelectorAll('#sidebar .nav-link').forEach(a => {
@@ -353,7 +366,7 @@ document.querySelectorAll('#sidebar .nav-link').forEach(a => {
 
 document.getElementById('saveKeyBtn').addEventListener('click', () => {
   adminKey = document.getElementById('adminKeyInput').value.trim();
-  localStorage.setItem('adminKey', adminKey);
+  sessionStorage.setItem('adminKey', adminKey);
   showToast('Admin key saved');
   showPage('dashboard');
 });
@@ -451,5 +464,5 @@ if (adminKey) document.getElementById('adminKeyInput').value = adminKey;
 showPage('dashboard');
 setInterval(() => {
   const active = document.querySelector('#sidebar .nav-link.active');
-  if (active) showPage(active.dataset.page);
+  if (active) refreshPage(active.dataset.page);
 }, REFRESH_INTERVAL_MS);

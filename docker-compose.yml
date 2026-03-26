@@ -9,10 +9,12 @@ services:
     container_name: livemux-nginx
     ports:
       - "${NGINX_RTMP_PORT:-1935}:1935"   # RTMP ingest (OBS)
-      - "${NGINX_HTTP_PORT:-80}:80"        # HLS + Web dashboard
+      - "${NGINX_HTTP_PORT:-80}:80"        # HTTP → HTTPS redirect
+      - "${NGINX_HTTPS_PORT:-443}:443"     # HLS + Web dashboard (HTTPS)
     volumes:
       - hls_data:/hls
       - recordings:/recordings
+      - ssl_certs:/etc/nginx/ssl          # TLS certificates (auto-generated if absent)
     depends_on:
       - api
     restart: unless-stopped
@@ -20,6 +22,7 @@ services:
       - HLS_FRAGMENT_SECONDS=${HLS_FRAGMENT_SECONDS:-2}
       - HLS_PLAYLIST_LENGTH=${HLS_PLAYLIST_LENGTH:-10}
       - INTERNAL_TOKEN=${INTERNAL_TOKEN:-${ADMIN_API_KEY}}
+      - SERVER_IP=${SERVER_IP:-}
     networks:
       - streaming
 
@@ -40,6 +43,7 @@ services:
       - ADMIN_API_KEY=${ADMIN_API_KEY:-change_me_in_production}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     depends_on:
       redis:
         condition: service_healthy
@@ -51,11 +55,17 @@ services:
   redis:
     image: redis:8-alpine
     container_name: livemux-redis
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    command: >-
+      redis-server
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      ${REDIS_PASSWORD:+--requirepass ${REDIS_PASSWORD}}
     volumes:
       - redis_data:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a $$REDIS_PASSWORD} ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -68,6 +78,7 @@ volumes:
   recordings:
   db_data:
   redis_data:
+  ssl_certs:
 
 networks:
   streaming:

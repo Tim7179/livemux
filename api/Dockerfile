@@ -10,8 +10,13 @@ RUN npm ci --omit=dev
 
 COPY src/ ./src/
 
-# Ensure data directory exists
-RUN mkdir -p /app/data
+# Create data directory and a non-root user to run the app
+RUN mkdir -p /app/data && \
+    addgroup -S appgroup && \
+    adduser -S -G appgroup appuser && \
+    chown -R appuser:appgroup /app/data
+
+USER appuser
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
     CMD wget -qO- http://localhost:3000/api/health || exit 1

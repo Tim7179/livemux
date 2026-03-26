@@ -2,6 +2,8 @@
 
 const express      = require('express');
 const morgan       = require('morgan');
+const helmet       = require('helmet');
+const rateLimit    = require('express-rate-limit');
 const errorHandler = require('./middleware/errorHandler');
 
 const authRoutes       = require('./routes/auth');
@@ -14,11 +16,36 @@ const userRoutes       = require('./routes/users');
 const app  = express();
 const PORT = parseInt(process.env.API_PORT || '3000', 10);
 
+// ── Security headers ─────────────────────────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: false, // managed by nginx for the dashboard
+  hsts: false,                  // HSTS should be set at the reverse-proxy level
+}));
+
+// ── Rate limiting ────────────────────────────────────────────────────────────
+app.set('trust proxy', 1); // trust first proxy (nginx)
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,   // 15 minutes
+  max: 300,                    // 300 requests per window per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', apiLimiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,                     // stricter for auth-related endpoints
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/auth/', authLimiter);
+
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(morgan('dev'));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(express.text({ type: 'text/csv', limit: '2mb' }));  // for CSV batch imports
-app.use(express.urlencoded({ extended: false }));   // for nginx-rtmp form hooks
+app.use(express.urlencoded({ extended: false, limit: '1mb' }));   // for nginx-rtmp form hooks
 
 // ── Health ────────────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

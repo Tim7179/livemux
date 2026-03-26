@@ -28,8 +28,14 @@ router.post('/publish', (req, res) => {
   }
 
   // Persist session + mark active (fire and forget Redis)
-  startSession(streamKey, clientIp);
-  markActive(streamKey, clientIp);
+  try {
+    startSession(streamKey, clientIp);
+    markActive(streamKey, clientIp);
+  } catch (err) {
+    console.error('[AUTH] Failed to initialize session:', err.message);
+    markInactive(streamKey);
+    return res.status(500).send('Session initialization failed');
+  }
   redis.setActive(streamKey, { clientIp }).catch(() => {});
 
   console.log(`[AUTH] accepted stream key: ${streamKey.substring(0, 8)}… from ${clientIp}`);
@@ -44,8 +50,12 @@ router.post('/publish-done', (req, res) => {
   const { name: streamKey } = req.body;
 
   if (streamKey) {
-    endSession(streamKey);
-    markInactive(streamKey);
+    try {
+      endSession(streamKey);
+      markInactive(streamKey);
+    } catch (err) {
+      console.error('[AUTH] Failed to end session:', err.message);
+    }
     redis.setInactive(streamKey).catch(() => {});
     console.log(`[AUTH] stream ended: ${streamKey.substring(0, 8)}…`);
   }

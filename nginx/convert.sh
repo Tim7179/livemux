@@ -44,7 +44,9 @@ if ffmpeg -y -loglevel warning \
 
   curl -sf -X POST "$API_URL" \
     -H "X-Internal-Token: ${INTERNAL_TOKEN}" \
-    -d "name=${STREAM_KEY}&path=${MP4_PATH}&status=ready" \
+    --data-urlencode "name=${STREAM_KEY}" \
+    --data-urlencode "path=${MP4_PATH}" \
+    --data-urlencode "status=ready" \
     || echo "[convert] WARN: API notify failed (non-fatal)"
 
 else
@@ -52,7 +54,10 @@ else
 
   curl -sf -X POST "$API_URL" \
     -H "X-Internal-Token: ${INTERNAL_TOKEN}" \
-    -d "name=${STREAM_KEY}&path=${FLV_PATH}&orig=${FLV_BASE}&status=failed" \
+    --data-urlencode "name=${STREAM_KEY}" \
+    --data-urlencode "path=${FLV_PATH}" \
+    --data-urlencode "orig=${FLV_BASE}" \
+    --data-urlencode "status=failed" \
     || echo "[convert] WARN: API notify failed (non-fatal)"
 
   exit 1

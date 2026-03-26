@@ -19,7 +19,7 @@ function validateEmail(email) {
   const trimmed = email.trim();
   if (trimmed.length > 254) throw Object.assign(new Error('`email` is too long'), { status: 400 });
   // Basic structural check only
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) throw Object.assign(new Error('`email` format is invalid'), { status: 400 });
+  if (!/^[^\s@]{1,64}@[^\s@]{1,255}\.[a-zA-Z]{2,}$/.test(trimmed)) throw Object.assign(new Error('`email` format is invalid'), { status: 400 });
   return trimmed;
 }
 
@@ -111,20 +111,39 @@ function createUsersBatch(rows) {
 }
 
 /**
- * parseCSV(csvText)
- * Parses a CSV string with header row: username[,email][,note]
- * Returns array of objects for createUsersBatch.
+ * Parses a single CSV line, handling quoted fields (RFC 4180).
+ * Supports commas inside quoted fields and "" as an escaped quote.
  */
+function parseCSVLine(line) {
+  const cols = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) {
+      cols.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  cols.push(current.trim());
+  return cols;
+}
+
 function parseCSV(csvText) {
   if (typeof csvText !== 'string') throw Object.assign(new Error('CSV must be a string'), { status: 400 });
   const lines = csvText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   if (lines.length < 2) throw Object.assign(new Error('CSV must have a header row and at least one data row'), { status: 400 });
 
-  const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const header = parseCSVLine(lines[0]).map(h => h.toLowerCase());
   if (!header.includes('username')) throw Object.assign(new Error('CSV header must include `username` column'), { status: 400 });
 
   return lines.slice(1).map(line => {
-    const cols = line.split(',').map(c => c.trim());
+    const cols = parseCSVLine(line);
     const obj  = {};
     header.forEach((h, i) => { obj[h] = cols[i] || ''; });
     return obj;

@@ -47,6 +47,11 @@ router.get('/:key', (req, res) => {
 
 // PATCH /api/stream-keys/:key  { name?, description?, is_active? }
 router.patch('/:key', (req, res) => {
+  const allowed = ['name', 'description', 'is_active'];
+  const extra = Object.keys(req.body || {}).filter(k => !allowed.includes(k));
+  if (extra.length > 0) {
+    return res.status(400).json({ error: `Unknown fields: ${extra.join(', ')}` });
+  }
   const record = svc.updateKey(req.params.key, req.body);
   if (!record) return res.status(404).json({ error: 'Stream key not found' });
   res.json(record);
