@@ -2,6 +2,7 @@
   "name": "streaming-api",
   "version": "1.0.0",
   "description": "REST API for OBS Streaming Server – stream key management, auth hooks, recordings",
+  "license": "Apache-2.0",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
