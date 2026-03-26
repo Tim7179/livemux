@@ -103,7 +103,7 @@ describe('POST /api/stream-keys/batch', () => {
     expect(res.body.created).toHaveLength(2);
     expect(res.body.errors).toHaveLength(0);
     res.body.created.forEach(k => {
-      expect(k.key).toMatch(/^[a-f0-9]{32}$/);
+      expect(k.key).toMatch(/^[A-Z0-9]{5}$/);
     });
   });
 

@@ -19,7 +19,7 @@ describe('streamKeyService', () => {
     it('creates a key with required name', () => {
       const record = svc.createKey({ name: 'Camera 1' });
       expect(record).toMatchObject({ name: 'Camera 1', description: '', is_active: 1 });
-      expect(record.key).toHaveLength(32);  // UUID without dashes
+      expect(record.key).toMatch(/^[A-Z0-9]{5}$/);  // short mode (default)
       createdKey = record.key;
     });
 
@@ -40,6 +40,15 @@ describe('streamKeyService', () => {
       const a = svc.createKey({ name: 'A' });
       const b = svc.createKey({ name: 'B' });
       expect(a.key).not.toBe(b.key);
+    });
+
+    it('creates a uuid-type key (32 hex chars)', () => {
+      const record = svc.createKey({ name: 'UUID Key', type: 'uuid' });
+      expect(record.key).toMatch(/^[a-f0-9]{32}$/);
+    });
+
+    it('throws for invalid type', () => {
+      expect(() => svc.createKey({ name: 'X', type: 'bad' })).toThrow('`type` must be');
     });
   });
 
