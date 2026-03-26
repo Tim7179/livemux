@@ -56,14 +56,16 @@ received such components are set forth below.
 4. Redis
    https://redis.io/
    Copyright (C) 2009-2026 Redis Ltd.
-   License: Redis Source Available License v2 (RSALv2)
-             OR Server Side Public License v1 (SSPLv1)
-             OR GNU Affero General Public License v3 (AGPLv3)
+   License: GNU Affero General Public License v3 (AGPLv3)
+             (Redis 8 is tri-licensed: RSALv2 / SSPLv1 / AGPLv3 — AGPLv3 elected)
    https://redis.io/legal/licenses/
+   https://www.gnu.org/licenses/agpl-3.0.html
 
-   This product uses Redis 8 under the RSALv2 license. Redis is used
-   as an independent network service (separate process); it is not
-   linked into or distributed as part of this application's source code.
+   This product uses Redis 8 under the AGPLv3 license. Redis runs as an
+   independent network service (separate Docker container communicating via
+   TCP). It is not linked into or embedded within this application's source
+   code; therefore the AGPLv3 copyleft does not extend to this project.
+   Redis source code is available at https://github.com/redis/redis.
 
 ------------------------------------------------------------------------
 5. Node.js
