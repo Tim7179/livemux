@@ -1,7 +1,8 @@
 {
-  "name": "streaming-api",
+  "name": "livemux",
   "version": "1.0.0",
-  "description": "REST API for OBS Streaming Server – stream key management, auth hooks, recordings",
+  "description": "LiveMux — Self-hosted RTMP/HLS streaming server with web admin dashboard",
+  "license": "Apache-2.0",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
@@ -12,6 +13,7 @@
     "test:coverage": "jest --coverage --runInBand --forceExit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
     "better-sqlite3": "^9.4.3",
     "express": "^4.18.3",
     "ioredis": "^5.3.2",
@@ -24,8 +26,12 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/tests/**/*.test.js"],
-    "collectCoverageFrom": ["src/**/*.js"],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ],
     "coverageThreshold": {
       "global": {
         "lines": 70,

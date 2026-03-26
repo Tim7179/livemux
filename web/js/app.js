@@ -9,9 +9,11 @@ let adminKey = localStorage.getItem('adminKey') || '';
 const hlsInstances = new Map();   // streamKey → Hls instance
 
 // ── Bootstrap helpers ───────────────────────────────────────────────────────
-const toastEl      = document.getElementById('toast');
-const bsToast      = new bootstrap.Toast(toastEl, { delay: 3000 });
+const toastEl        = document.getElementById('toast');
+const bsToast        = new bootstrap.Toast(toastEl, { delay: 3000 });
 const createKeyModal = new bootstrap.Modal(document.getElementById('createKeyModal'));
+const createUserModal = new bootstrap.Modal(document.getElementById('createUserModal'));
+const batchUserModal  = new bootstrap.Modal(document.getElementById('batchUserModal'));
 
 function showToast(msg, type = 'success') {
   const body = document.getElementById('toast-body');
@@ -43,6 +45,8 @@ function showPage(name) {
     case 'multiview':    loadMultiview();    break;
     case 'stream-keys':  loadStreamKeys();   break;
     case 'recordings':   loadRecordings();   break;
+    case 'users':        loadUsers();        break;
+    case 'code-review':  /* no auto-load */  break;
   }
 }
 
@@ -196,15 +200,16 @@ async function loadRecordings() {
         <td class="font-monospace small">${escHtml(r.filename)}</td>
         <td>${escHtml(r.stream_key)}</td>
         <td>${formatBytes(r.size_bytes)}</td>
+        <td>${recordingStatusBadge(r.status)}</td>
         <td class="text-muted small">${new Date(r.created_at).toLocaleString()}</td>
         <td>
-          <button class="btn btn-sm btn-outline-danger"
+          <button class="btn btn-sm btn-outline-danger" ${r.status === 'converting' ? 'disabled' : ''}
             onclick="deleteRecording('${escHtml(r.filename)}')">
             <i class="bi bi-trash"></i>
           </button>
         </td>
       </tr>
-    `).join('') || '<tr><td colspan="5" class="text-muted">No recordings yet.</td></tr>';
+    `).join('') || '<tr><td colspan="6" class="text-muted">No recordings yet.</td></tr>';
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" class="text-danger">${escHtml(err.message)}</td></tr>`;
   }
@@ -218,6 +223,75 @@ async function deleteRecording(filename) {
     loadRecordings();
   } catch (err) {
     showToast(err.message, 'error');
+  }
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+async function loadUsers() {
+  const tbody = document.getElementById('users-table-body');
+  try {
+    const users = await apiFetch('/users');
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td class="text-muted small">${u.id}</td>
+        <td class="fw-semibold">${escHtml(u.username)}</td>
+        <td class="text-muted small">${escHtml(u.email || '–')}</td>
+        <td class="text-muted small">${escHtml(u.note || '–')}</td>
+        <td class="text-muted small">${new Date(u.created_at).toLocaleString()}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${u.id})">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `).join('') || '<tr><td colspan="6" class="text-muted">No users yet.</td></tr>';
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-danger">${escHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function deleteUser(id) {
+  if (!confirm('Delete this user?')) return;
+  try {
+    await apiFetch(`/users/${id}`, { method: 'DELETE' });
+    showToast('User deleted');
+    loadUsers();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ── Code Review ───────────────────────────────────────────────────────────────
+async function submitReview() {
+  const content  = document.getElementById('reviewContent').value.trim();
+  const filename = document.getElementById('reviewFilename').value.trim();
+  const context  = document.getElementById('reviewContext').value.trim();
+
+  if (!content) { showToast('Please paste some code first', 'error'); return; }
+
+  const btn     = document.getElementById('reviewBtn');
+  const spinner = document.getElementById('review-spinner');
+  const result  = document.getElementById('review-result');
+  const output  = document.getElementById('review-output');
+  const meta    = document.getElementById('review-meta');
+
+  btn.disabled = true;
+  spinner.classList.remove('d-none');
+  result.classList.add('d-none');
+
+  try {
+    const data = await apiFetch('/admin/review', {
+      method: 'POST',
+      body: JSON.stringify({ content, filename: filename || undefined, context: context || undefined }),
+    });
+    output.textContent = data.review;
+    meta.textContent = `Model: ${data.model} · Input: ${data.usage?.input_tokens ?? '?'} tokens · Output: ${data.usage?.output_tokens ?? '?'} tokens`;
+    result.classList.remove('d-none');
+  } catch (err) {
+    showToast('Review failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    spinner.classList.add('d-none');
   }
 }
 
@@ -256,6 +330,14 @@ function copyText(text) {
   navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
 }
 
+function recordingStatusBadge(status) {
+  switch (status) {
+    case 'converting': return '<span class="badge bg-warning text-dark"><i class="bi bi-arrow-repeat me-1"></i>Converting</span>';
+    case 'failed':     return '<span class="badge bg-danger">Failed</span>';
+    default:           return '<span class="badge bg-success">Ready</span>';
+  }
+}
+
 function formatBytes(b) {
   if (!b) return '–';
   if (b < 1024) return `${b} B`;
@@ -291,6 +373,78 @@ document.getElementById('createKeyBtn').addEventListener('click', async () => {
 
 document.getElementById('refreshMultiview').addEventListener('click', loadMultiview);
 document.getElementById('gridLayout').addEventListener('change', loadMultiview);
+
+// ── Users event wiring ────────────────────────────────────────────────────────
+document.getElementById('createUserBtn').addEventListener('click', async () => {
+  const username = document.getElementById('newUsername').value.trim();
+  const email    = document.getElementById('newUserEmail').value.trim();
+  const note     = document.getElementById('newUserNote').value.trim();
+  try {
+    await apiFetch('/users', { method: 'POST', body: JSON.stringify({ username, email: email || undefined, note: note || undefined }) });
+    createUserModal.hide();
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newUserEmail').value = '';
+    document.getElementById('newUserNote').value = '';
+    showToast('User created');
+    loadUsers();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+// Batch import tab switching
+document.querySelectorAll('[data-batch-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-batch-tab]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.batchTab;
+    document.getElementById('batch-json-panel').classList.toggle('d-none', tab !== 'json');
+    document.getElementById('batch-csv-panel').classList.toggle('d-none', tab !== 'csv');
+  });
+});
+
+document.getElementById('batchImportBtn').addEventListener('click', async () => {
+  const resultEl = document.getElementById('batch-import-result');
+  const activeTab = document.querySelector('[data-batch-tab].active')?.dataset.batchTab || 'json';
+  resultEl.classList.add('d-none');
+
+  try {
+    let data;
+    if (activeTab === 'csv') {
+      const csv = document.getElementById('batchUsersCsv').value;
+      if (!csv.trim()) { showToast('Please enter CSV data', 'error'); return; }
+      const res = await fetch(`${API_BASE}/users/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/csv', 'X-Admin-Key': adminKey },
+        body: csv,
+      });
+      if (res.status === 204) { data = null; } else { data = await res.json().catch(() => ({})); }
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    } else {
+      const json = document.getElementById('batchUsersJson').value;
+      if (!json.trim()) { showToast('Please enter JSON data', 'error'); return; }
+      let users;
+      try { users = JSON.parse(json); } catch { showToast('Invalid JSON', 'error'); return; }
+      if (!Array.isArray(users)) { showToast('JSON must be an array of user objects', 'error'); return; }
+      data = await apiFetch('/users/batch', { method: 'POST', body: JSON.stringify({ users }) });
+    }
+    const created = data?.created?.length ?? 0;
+    const errors  = data?.errors?.length ?? 0;
+    resultEl.innerHTML = `
+      <div class="alert alert-${errors === 0 ? 'success' : created === 0 ? 'danger' : 'warning'} py-2">
+        <strong>${created}</strong> created, <strong>${errors}</strong> failed.
+        ${errors > 0 ? `<br><small>${(data.errors || []).map(e => escHtml(`Row ${e.index + 1} (${e.username || '?'}): ${e.error}`)).join('<br>')}</small>` : ''}
+      </div>`;
+    resultEl.classList.remove('d-none');
+    if (created > 0) loadUsers();
+  } catch (err) {
+    resultEl.innerHTML = `<div class="alert alert-danger py-2">${escHtml(err.message)}</div>`;
+    resultEl.classList.remove('d-none');
+  }
+});
+
+// ── Code Review event wiring ──────────────────────────────────────────────────
+document.getElementById('reviewBtn').addEventListener('click', submitReview);
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 if (adminKey) document.getElementById('adminKeyInput').value = adminKey;

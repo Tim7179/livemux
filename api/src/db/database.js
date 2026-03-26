@@ -38,7 +38,16 @@ function getDb() {
       stream_key  TEXT    NOT NULL,
       filename    TEXT    NOT NULL,
       size_bytes  INTEGER DEFAULT 0,
+      status      TEXT    DEFAULT 'ready',
       created_at  TEXT    DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      username   TEXT    UNIQUE NOT NULL,
+      email      TEXT    UNIQUE,
+      note       TEXT    DEFAULT '',
+      created_at TEXT    DEFAULT (datetime('now'))
     );
   `);
 

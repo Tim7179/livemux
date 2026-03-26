@@ -1,12 +1,14 @@
-FROM ubuntu:22.04
+FROM debian:trixie-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
     libnginx-mod-rtmp \
     ffmpeg \
     curl \
+    bash \
+    coreutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Create directories for HLS segments and recordings
@@ -17,6 +19,10 @@ RUN mkdir -p /hls /recordings && \
 # Override default nginx config
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx/stat.xsl   /usr/share/nginx/html/stat.xsl
+
+# FLV → MP4 conversion script
+COPY nginx/convert.sh /usr/local/bin/convert.sh
+RUN chmod +x /usr/local/bin/convert.sh
 
 # Web admin dashboard
 COPY web/ /usr/share/nginx/html/

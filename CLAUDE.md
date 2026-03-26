@@ -1,10 +1,10 @@
-# CLAUDE.md – Streaming Server
+# CLAUDE.md – LiveMux
 
 AI assistant guide for this repository.
 
 ## Project Purpose
 
-OBS-compatible live-streaming server: accepts RTMP from OBS, converts to HLS
+LiveMux — OBS-compatible live-streaming server: accepts RTMP from OBS, converts to HLS
 for viewer playback, and provides a web admin dashboard for managing stream
 keys, viewing active streams in a multi-grid layout, and accessing recordings.
 
@@ -30,9 +30,9 @@ OBS (RTMP push)
 
 | Service | Image | Ports | Role |
 |---------|-------|-------|------|
-| `nginx` | ubuntu:22.04 + nginx-rtmp | 1935, 80 | RTMP ingest, HLS, static files |
-| `api`   | node:20-alpine | (internal 3000) | REST API |
-| `redis` | redis:7-alpine | (internal 6379) | Active stream state |
+| `nginx` | debian:trixie-slim + nginx-rtmp | 1935, 80 | RTMP ingest, HLS, static files |
+| `api`   | node:24-alpine | (internal 3000) | REST API |
+| `redis` | redis:8-alpine | (internal 6379) | Active stream state |
 
 ## Directory Structure
 

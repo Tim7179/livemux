@@ -23,7 +23,7 @@ router.post('/publish', (req, res) => {
 
   const valid = validateKey(streamKey);
   if (!valid) {
-    console.log(`[AUTH] rejected stream key: ${streamKey} from ${clientIp}`);
+    console.log(`[AUTH] rejected stream key: ${streamKey.substring(0, 8)}… from ${clientIp}`);
     return res.status(403).send('Forbidden');
   }
 
@@ -32,7 +32,7 @@ router.post('/publish', (req, res) => {
   markActive(streamKey, clientIp);
   redis.setActive(streamKey, { clientIp }).catch(() => {});
 
-  console.log(`[AUTH] accepted stream key: ${streamKey} from ${clientIp}`);
+  console.log(`[AUTH] accepted stream key: ${streamKey.substring(0, 8)}… from ${clientIp}`);
   res.status(200).send('OK');
 });
 
@@ -47,7 +47,7 @@ router.post('/publish-done', (req, res) => {
     endSession(streamKey);
     markInactive(streamKey);
     redis.setInactive(streamKey).catch(() => {});
-    console.log(`[AUTH] stream ended: ${streamKey}`);
+    console.log(`[AUTH] stream ended: ${streamKey.substring(0, 8)}…`);
   }
 
   res.status(200).send('OK');
