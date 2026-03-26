@@ -111,11 +111,6 @@ function createUsersBatch(rows) {
 }
 
 /**
- * parseCSV(csvText)
- * Parses a CSV string with header row: username[,email][,note]
- * Returns array of objects for createUsersBatch.
- */
-/**
  * Parses a single CSV line, handling quoted fields (RFC 4180).
  * Supports commas inside quoted fields and "" as an escaped quote.
  */

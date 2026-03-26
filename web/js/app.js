@@ -33,6 +33,18 @@ async function apiFetch(path, opts = {}) {
 }
 
 // ── Page navigation ──────────────────────────────────────────────────────────
+// refreshPage: reload data only, without destroying active HLS streams.
+// Used by the auto-refresh interval so streams are not interrupted.
+function refreshPage(name) {
+  switch (name) {
+    case 'dashboard':    loadDashboard();    break;
+    case 'multiview':    loadMultiview();    break;
+    case 'stream-keys':  loadStreamKeys();   break;
+    case 'recordings':   loadRecordings();   break;
+    case 'users':        loadUsers();        break;
+  }
+}
+
 function showPage(name) {
   destroyAllHls();
   document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('d-none'));
@@ -452,5 +464,5 @@ if (adminKey) document.getElementById('adminKeyInput').value = adminKey;
 showPage('dashboard');
 setInterval(() => {
   const active = document.querySelector('#sidebar .nav-link.active');
-  if (active) showPage(active.dataset.page);
+  if (active) refreshPage(active.dataset.page);
 }, REFRESH_INTERVAL_MS);
