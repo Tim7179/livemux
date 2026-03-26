@@ -60,6 +60,7 @@ function showPage(name) {
     case 'recordings':   loadRecordings();   break;
     case 'users':        loadUsers();        break;
     case 'code-review':  /* no auto-load */  break;
+    case 'network':      loadNetwork();      break;
   }
 }
 
@@ -458,6 +459,73 @@ document.getElementById('batchImportBtn').addEventListener('click', async () => 
 
 // ── Code Review event wiring ──────────────────────────────────────────────────
 document.getElementById('reviewBtn').addEventListener('click', submitReview);
+
+// ── Network ───────────────────────────────────────────────────────────────────
+const DEFAULT_NETWORKS = ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '127.0.0.1/32'];
+let networkDraft = [];
+
+async function loadNetwork() {
+  try {
+    const data = await apiFetch('/settings/network');
+    networkDraft = [...data.networks];
+    renderNetworkList();
+  } catch (err) {
+    showToast('Failed to load network settings: ' + err.message, 'danger');
+  }
+}
+
+function renderNetworkList() {
+  const ul = document.getElementById('networkList');
+  if (networkDraft.length === 0) {
+    ul.innerHTML = '<li class="list-group-item bg-transparent text-muted small">No rules — all traffic will be blocked.</li>';
+    return;
+  }
+  ul.innerHTML = networkDraft.map((cidr, i) => `
+    <li class="list-group-item bg-transparent border-secondary d-flex justify-content-between align-items-center py-2">
+      <code class="text-light">${escHtml(cidr)}</code>
+      <button class="btn btn-outline-danger btn-sm py-0 px-2" data-net-idx="${i}">
+        <i class="bi bi-trash"></i>
+      </button>
+    </li>`).join('');
+  ul.querySelectorAll('[data-net-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      networkDraft.splice(parseInt(btn.dataset.netIdx), 1);
+      renderNetworkList();
+    });
+  });
+}
+
+document.getElementById('addNetworkBtn').addEventListener('click', () => {
+  const input = document.getElementById('networkInput');
+  const val = input.value.trim();
+  if (!val) return;
+  if (networkDraft.includes(val)) { showToast('Already in the list', 'warning'); return; }
+  networkDraft.push(val);
+  renderNetworkList();
+  input.value = '';
+});
+
+document.getElementById('networkInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('addNetworkBtn').click();
+});
+
+document.getElementById('saveNetworkBtn').addEventListener('click', async () => {
+  try {
+    await apiFetch('/settings/network', {
+      method: 'PUT',
+      body: JSON.stringify({ networks: networkDraft }),
+    });
+    showToast('Network rules saved');
+  } catch (err) {
+    showToast('Save failed: ' + err.message, 'danger');
+  }
+});
+
+document.getElementById('resetNetworkBtn').addEventListener('click', () => {
+  networkDraft = [...DEFAULT_NETWORKS];
+  renderNetworkList();
+  showToast('Reset to defaults (not yet saved)');
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 if (adminKey) document.getElementById('adminKeyInput').value = adminKey;

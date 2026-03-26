@@ -49,6 +49,11 @@ function getDb() {
       note       TEXT    DEFAULT '',
       created_at TEXT    DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
 
   return _db;

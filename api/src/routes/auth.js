@@ -4,6 +4,7 @@ const express      = require('express');
 const { validateKey }  = require('../services/streamKeyService');
 const { startSession, endSession, markActive, markInactive } = require('../services/streamService');
 const redis        = require('../services/redisService');
+const { getNetworks, isAllowed } = require('../services/settingsService');
 
 const router = express.Router();
 
@@ -61,6 +62,21 @@ router.post('/publish-done', (req, res) => {
   }
 
   res.status(200).send('OK');
+});
+
+/**
+ * GET /api/auth/network-check
+ * Internal nginx auth_request endpoint.
+ * Returns 200 if the client IP is in the allowed networks list, 403 otherwise.
+ * nginx passes the real client IP via X-Real-IP header.
+ */
+router.get('/network-check', (req, res) => {
+  const clientIp = req.headers['x-real-ip'] || req.ip;
+  const networks = getNetworks();
+  if (isAllowed(clientIp, networks)) {
+    return res.status(200).end();
+  }
+  return res.status(403).end();
 });
 
 module.exports = router;

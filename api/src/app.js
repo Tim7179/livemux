@@ -12,6 +12,7 @@ const streamRoutes     = require('./routes/streams');
 const recordingRoutes  = require('./routes/recordings');
 const adminRoutes      = require('./routes/admin');
 const userRoutes       = require('./routes/users');
+const settingsRoutes   = require('./routes/settings');
 
 const app  = express();
 const PORT = parseInt(process.env.API_PORT || '3000', 10);
@@ -59,6 +60,7 @@ app.use('/api/streams',     streamRoutes);
 app.use('/api/recordings',  recordingRoutes);
 app.use('/api/admin',       adminRoutes);
 app.use('/api/users',       userRoutes);
+app.use('/api/settings',    settingsRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
