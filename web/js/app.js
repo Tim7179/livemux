@@ -47,6 +47,7 @@ function refreshPage(name) {
 
 function showPage(name) {
   destroyAllHls();
+  stopCarousel();
   document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('d-none'));
   document.getElementById(`page-${name}`).classList.remove('d-none');
   document.querySelectorAll('#sidebar .nav-link').forEach(a => {
@@ -109,26 +110,39 @@ async function loadDashboard() {
 }
 
 // ── Multi-View ────────────────────────────────────────────────────────────────
+let carouselTimer   = null;
+let carouselPage    = 0;
+let carouselStreams  = [];
+
 async function loadMultiview() {
   destroyAllHls();
-  const cols = parseInt(document.getElementById('gridLayout').value, 10);
+  const cols  = parseInt(document.getElementById('gridLayout').value, 10);
   const total = cols * cols;
   const grid  = document.getElementById('multiview-grid');
   grid.className = `multiview-grid grid-${cols}`;
 
-  let streams = [];
   try {
-    streams = await apiFetch('/streams');
+    carouselStreams = await apiFetch('/streams');
   } catch {
-    // Show empty grid if auth fails or no streams
+    carouselStreams = [];
   }
 
+  renderMultiviewPage(carouselStreams, cols, total, carouselPage);
+}
+
+function renderMultiviewPage(streams, cols, total, page) {
+  const grid   = document.getElementById('multiview-grid');
+  const offset = page * total;
+  const slice  = streams.slice(offset, offset + total);
+  const info   = document.getElementById('carouselPageInfo');
+  const totalPages = Math.max(1, Math.ceil(streams.length / total));
+
+  destroyAllHls();
   grid.innerHTML = '';
   for (let i = 0; i < total; i++) {
-    const s   = streams[i];
+    const s   = slice[i];
     const div = document.createElement('div');
     div.className = 'multiview-cell';
-
     if (s) {
       div.innerHTML = `
         <video id="mv-${s.streamKey}" muted autoplay playsinline></video>
@@ -140,6 +154,31 @@ async function loadMultiview() {
     grid.appendChild(div);
     if (s) attachHls(`mv-${s.streamKey}`, s.streamKey);
   }
+
+  if (document.getElementById('carouselEnable').checked && totalPages > 1) {
+    info.textContent = `第 ${page + 1} / ${totalPages} 頁`;
+    info.classList.remove('d-none');
+  } else {
+    info.classList.add('d-none');
+  }
+}
+
+function startCarousel() {
+  stopCarousel();
+  const secs = Math.max(3, parseInt(document.getElementById('carouselInterval').value, 10) || 10);
+  carouselTimer = setInterval(async () => {
+    const cols       = parseInt(document.getElementById('gridLayout').value, 10);
+    const pageSize   = cols * cols;
+    try { carouselStreams = await apiFetch('/streams'); } catch { /* keep last */ }
+    const totalPages = Math.max(1, Math.ceil(carouselStreams.length / pageSize));
+    carouselPage = (carouselPage + 1) % totalPages;
+    renderMultiviewPage(carouselStreams, cols, pageSize, carouselPage);
+  }, secs * 1000);
+}
+
+function stopCarousel() {
+  if (carouselTimer) { clearInterval(carouselTimer); carouselTimer = null; }
+  document.getElementById('carouselPageInfo').classList.add('d-none');
 }
 
 // ── Stream Keys ───────────────────────────────────────────────────────────────
@@ -423,8 +462,30 @@ document.getElementById('generateKeysModal').addEventListener('show.bs.modal', (
   updateGenPreview();
 });
 
-document.getElementById('refreshMultiview').addEventListener('click', loadMultiview);
-document.getElementById('gridLayout').addEventListener('change', loadMultiview);
+document.getElementById('refreshMultiview').addEventListener('click', () => {
+  carouselPage = 0;
+  loadMultiview();
+  if (document.getElementById('carouselEnable').checked) startCarousel();
+});
+document.getElementById('gridLayout').addEventListener('change', () => {
+  carouselPage = 0;
+  loadMultiview();
+  if (document.getElementById('carouselEnable').checked) startCarousel();
+});
+document.getElementById('carouselEnable').addEventListener('change', e => {
+  if (e.target.checked) {
+    carouselPage = 0;
+    loadMultiview();
+    startCarousel();
+  } else {
+    stopCarousel();
+    carouselPage = 0;
+    loadMultiview();
+  }
+});
+document.getElementById('carouselInterval').addEventListener('change', () => {
+  if (document.getElementById('carouselEnable').checked) startCarousel();
+});
 
 // ── Users event wiring ────────────────────────────────────────────────────────
 document.getElementById('createUserBtn').addEventListener('click', async () => {
@@ -570,30 +631,59 @@ async function exportStreamKeysExcel() {
   try {
     const keys = await apiFetch('/stream-keys');
 
-    const rows = keys.map(k => ({
-      '名稱': k.name,
-      '串流金鑰': k.key,
-      '描述': k.description || '',
-      '狀態': k.is_active ? '啟用' : '停用',
-      '建立時間': new Date(k.created_at).toLocaleString(),
-    }));
+    // Build SpreadsheetML XML (opens natively in Excel without any library)
+    const xmlCell = (v, type = 'String') =>
+      `<Cell><Data ss:Type="${type}">${String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</Data></Cell>`;
 
-    const ws = XLSX.utils.json_to_sheet(rows);
+    const headers = ['名稱', '串流金鑰', '描述', '狀態', 'RTMP 伺服器', '建立時間'];
+    const host    = window.location.hostname;
+    const rows    = keys.map(k => [
+      k.name,
+      k.key,
+      k.description || '',
+      k.is_active ? '啟用' : '停用',
+      `rtmp://${host}:1935/live`,
+      new Date(k.created_at).toLocaleString(),
+    ]);
 
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 20 },  // 名稱
-      { wch: 36 },  // 串流金鑰
-      { wch: 30 },  // 描述
-      { wch: 10 },  // 狀態
-      { wch: 22 },  // 建立時間
-    ];
+    const headerRow = `<Row>${headers.map(h => xmlCell(h)).join('')}</Row>`;
+    const dataRows  = rows.map(r => `<Row>${r.map(v => xmlCell(v)).join('')}</Row>`).join('');
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Stream Keys');
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+          xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Styles>
+    <Style ss:ID="header">
+      <Font ss:Bold="1"/>
+      <Interior ss:Color="#2D6A4F" ss:Pattern="Solid"/>
+      <Font ss:Color="#FFFFFF" ss:Bold="1"/>
+    </Style>
+  </Styles>
+  <Worksheet ss:Name="Stream Keys">
+    <Table>
+      <Column ss:Width="120"/>
+      <Column ss:Width="220"/>
+      <Column ss:Width="160"/>
+      <Column ss:Width="60"/>
+      <Column ss:Width="180"/>
+      <Column ss:Width="140"/>
+      <Row>${headers.map(h => `<Cell ss:StyleID="header"><Data ss:Type="String">${h}</Data></Cell>`).join('')}</Row>
+      ${dataRows}
+    </Table>
+  </Worksheet>
+</Workbook>`;
 
-    const date = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `stream-keys-${date}.xlsx`);
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `stream-keys-${new Date().toISOString().slice(0,10)}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
     showToast(`已匯出 ${keys.length} 筆串流金鑰`);
   } catch (err) {
     showToast('匯出失敗：' + err.message, 'error');
