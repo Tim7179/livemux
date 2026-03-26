@@ -34,6 +34,7 @@ async function apiFetch(path, opts = {}) {
 
 // ── Page navigation ──────────────────────────────────────────────────────────
 function showPage(name) {
+  destroyAllHls();
   document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('d-none'));
   document.getElementById(`page-${name}`).classList.remove('d-none');
   document.querySelectorAll('#sidebar .nav-link').forEach(a => {

@@ -9,10 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     bash \
     coreutils \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create directories for HLS segments and recordings
-RUN mkdir -p /hls /recordings && \
+# Create directories for HLS segments, recordings, and TLS certificates
+RUN mkdir -p /hls /recordings /etc/nginx/ssl && \
     chown -R www-data:www-data /hls /recordings && \
     chmod 755 /hls /recordings
 
@@ -24,13 +25,17 @@ COPY nginx/stat.xsl   /usr/share/nginx/html/stat.xsl
 COPY nginx/convert.sh /usr/local/bin/convert.sh
 RUN chmod +x /usr/local/bin/convert.sh
 
+# Startup script: generates self-signed TLS cert if none exists, then runs nginx
+COPY nginx/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Web admin dashboard
 COPY web/ /usr/share/nginx/html/
 
-# Healthcheck: verify nginx is serving HTTP
-HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
+# Healthcheck: use plain HTTP /health (bypasses HTTPS redirect)
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost/health || exit 1
 
-EXPOSE 1935 80
+EXPOSE 1935 80 443
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
