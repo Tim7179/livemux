@@ -1,7 +1,7 @@
 {
-  "name": "streaming-api",
+  "name": "livemux",
   "version": "1.0.0",
-  "description": "REST API for OBS Streaming Server – stream key management, auth hooks, recordings",
+  "description": "LiveMux — Self-hosted RTMP/HLS streaming server with web admin dashboard",
   "license": "Apache-2.0",
   "main": "src/app.js",
   "scripts": {

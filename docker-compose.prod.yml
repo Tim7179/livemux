@@ -31,4 +31,4 @@ services:
   # api2:
   #   extends:
   #     service: api
-  #   container_name: streaming-api-2
+  #   container_name: livemux-api-2

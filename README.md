@@ -1,8 +1,8 @@
-# Streaming Server
+# LiveMux
 
-OBS-compatible live-streaming server with HLS output, stream key authentication,
-recording, and a web-based multi-stream admin dashboard.  Deployed entirely with
-Docker Compose.
+Self-hosted RTMP/HLS streaming server — accepts streams from OBS, delivers HLS
+to viewers, and provides a web admin dashboard for stream key management,
+multi-grid monitoring, and recordings. Deployed entirely with Docker Compose.
 
 ## Features
 

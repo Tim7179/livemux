@@ -1,10 +1,10 @@
-# CLAUDE.md – Streaming Server
+# CLAUDE.md – LiveMux
 
 AI assistant guide for this repository.
 
 ## Project Purpose
 
-OBS-compatible live-streaming server: accepts RTMP from OBS, converts to HLS
+LiveMux — OBS-compatible live-streaming server: accepts RTMP from OBS, converts to HLS
 for viewer playback, and provides a web admin dashboard for managing stream
 keys, viewing active streams in a multi-grid layout, and accessing recordings.
 
