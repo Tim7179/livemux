@@ -31,4 +31,7 @@ if [ ! -f "$CERT" ] || [ ! -f "$KEY" ]; then
   echo "[SSL] Import this file into your browser/OS trust store for a trusted connection."
 fi
 
+# Fix volume mount permissions (Docker named volumes are root:root by default)
+chown -R www-data:www-data /hls /recordings
+
 exec nginx -g "daemon off;"
