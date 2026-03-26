@@ -8,19 +8,16 @@ on:
 
 jobs:
   test:
-    name: Tests (Node.js ${{ matrix.node }})
+    name: Tests (Node.js 24)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node: [22, 24]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js ${{ matrix.node }}
+      - name: Set up Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 24
           cache: npm
           cache-dependency-path: api/package-lock.json
 
@@ -37,7 +34,6 @@ jobs:
           NODE_ENV: test
 
       - name: Upload coverage report
-        if: matrix.node == 24
         uses: actions/upload-artifact@v4
         with:
           name: coverage
