@@ -151,8 +151,9 @@ async function loadStreamKeys() {
       <tr>
         <td class="fw-semibold">${escHtml(k.name)}</td>
         <td>
-          <span class="key-badge" title="Click to copy" onclick="copyText('${escHtml(k.key)}')">
-            ${escHtml(k.key.substring(0, 12))}…
+          <span class="key-badge font-monospace" title="Click to copy"
+                data-copy="${escHtml(k.key)}" style="cursor:pointer">
+            ${escHtml(k.key)}
           </span>
         </td>
         <td class="text-muted small">${escHtml(k.description || '–')}</td>
@@ -162,13 +163,13 @@ async function loadStreamKeys() {
             : '<span class="badge bg-secondary">Inactive</span>'}
         </td>
         <td class="text-muted small">${new Date(k.created_at).toLocaleString()}</td>
-        <td>
+        <td class="text-nowrap">
           <button class="btn btn-sm btn-outline-warning me-1"
-            onclick="toggleKey('${escHtml(k.key)}', ${k.is_active ? 0 : 1})">
+                  data-action="toggle" data-key="${escHtml(k.key)}" data-active="${k.is_active ? 0 : 1}">
             ${k.is_active ? 'Disable' : 'Enable'}
           </button>
           <button class="btn btn-sm btn-outline-danger"
-            onclick="deleteKey('${escHtml(k.key)}')">
+                  data-action="delete" data-key="${escHtml(k.key)}">
             <i class="bi bi-trash"></i>
           </button>
         </td>
@@ -179,29 +180,31 @@ async function loadStreamKeys() {
   }
 }
 
-async function toggleKey(key, isActive) {
-  try {
-    await apiFetch(`/stream-keys/${key}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ is_active: isActive }),
-    });
-    showToast('Stream key updated');
-    loadStreamKeys();
-  } catch (err) {
-    showToast(err.message, 'error');
+// Event delegation for stream key table actions
+document.getElementById('keys-table-body').addEventListener('click', async e => {
+  const btn = e.target.closest('[data-action]');
+  const copy = e.target.closest('[data-copy]');
+  if (copy) { copyText(copy.dataset.copy); return; }
+  if (!btn) return;
+  const { action, key, active } = btn.dataset;
+  if (action === 'toggle') {
+    try {
+      await apiFetch(`/stream-keys/${key}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_active: parseInt(active) }),
+      });
+      showToast('Stream key updated');
+      loadStreamKeys();
+    } catch (err) { showToast(err.message, 'error'); }
+  } else if (action === 'delete') {
+    if (!confirm('Delete this stream key?')) return;
+    try {
+      await apiFetch(`/stream-keys/${key}`, { method: 'DELETE' });
+      showToast('Stream key deleted');
+      loadStreamKeys();
+    } catch (err) { showToast(err.message, 'error'); }
   }
-}
-
-async function deleteKey(key) {
-  if (!confirm('Delete this stream key?')) return;
-  try {
-    await apiFetch(`/stream-keys/${key}`, { method: 'DELETE' });
-    showToast('Stream key deleted');
-    loadStreamKeys();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
-}
+});
 
 // ── Recordings ────────────────────────────────────────────────────────────────
 async function loadRecordings() {
@@ -348,6 +351,76 @@ document.getElementById('createKeyBtn').addEventListener('click', async () => {
   } catch (err) {
     showToast(err.message, 'error');
   }
+});
+
+// ── Batch Generate Keys ───────────────────────────────────────────────────────
+const generateKeysModal = new bootstrap.Modal(document.getElementById('generateKeysModal'));
+
+function updateGenPreview() {
+  const count  = parseInt(document.getElementById('genCount').value, 10) || 1;
+  const prefix = document.getElementById('genPrefix').value.trim() || 'OBS';
+  const pad    = Math.max(String(count).length, 2);
+  document.getElementById('genPreview').textContent     = `${prefix}-${'1'.padStart(pad, '0')}`;
+  document.getElementById('genPreviewLast').textContent = `${prefix}-${String(count).padStart(pad, '0')}`;
+}
+document.getElementById('genCount').addEventListener('input', updateGenPreview);
+document.getElementById('genPrefix').addEventListener('input', updateGenPreview);
+
+document.getElementById('generateKeysBtn').addEventListener('click', async () => {
+  const count  = parseInt(document.getElementById('genCount').value, 10);
+  const prefix = document.getElementById('genPrefix').value.trim() || 'OBS';
+  const type   = document.getElementById('genType').value;
+  const btn    = document.getElementById('generateKeysBtn');
+
+  if (!count || count < 1 || count > 500) { showToast('Count must be 1–500', 'error'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating…';
+  try {
+    const data = await apiFetch('/stream-keys/generate', {
+      method: 'POST',
+      body: JSON.stringify({ count, prefix, type }),
+    });
+    const rows    = data.created || [];
+    const errCount = (data.errors || []).length;
+    document.getElementById('genResultTitle').textContent =
+      `Generated ${rows.length} key${rows.length !== 1 ? 's' : ''}${errCount ? ` (${errCount} failed)` : ''}`;
+
+    const host = window.location.hostname;
+    document.getElementById('genResultBody').innerHTML = rows.map(k => `
+      <tr>
+        <td class="fw-semibold">${escHtml(k.name)}</td>
+        <td><code class="text-light" style="cursor:pointer" title="Click to copy"
+                  data-copy="${escHtml(k.key)}">${escHtml(k.key)}</code></td>
+        <td class="text-muted small font-monospace">rtmp://${escHtml(host)}:1935/live</td>
+      </tr>`).join('');
+
+    // copy clicks in result table
+    document.getElementById('genResultBody').querySelectorAll('[data-copy]').forEach(el => {
+      el.addEventListener('click', () => copyText(el.dataset.copy));
+    });
+
+    document.getElementById('genCopyAllBtn').onclick = () => {
+      const csv = 'Name,Stream Key,RTMP Server\n' +
+        rows.map(k => `${k.name},${k.key},rtmp://${host}:1935/live`).join('\n');
+      copyText(csv);
+      showToast('Copied CSV to clipboard');
+    };
+
+    document.getElementById('genResult').classList.remove('d-none');
+    loadStreamKeys();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-lightning me-1"></i>Generate';
+  }
+});
+
+// reset result when modal reopens
+document.getElementById('generateKeysModal').addEventListener('show.bs.modal', () => {
+  document.getElementById('genResult').classList.add('d-none');
+  updateGenPreview();
 });
 
 document.getElementById('refreshMultiview').addEventListener('click', loadMultiview);
