@@ -19,7 +19,7 @@ multi-grid monitoring, and recordings. Deployed entirely with Docker Compose.
 ```bash
 # 1. Clone and configure
 git clone <repo>
-cd Streaming-server
+cd livemux
 cp .env.example .env
 # Open .env and set ADMIN_API_KEY to a strong secret
 
