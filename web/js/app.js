@@ -59,7 +59,6 @@ function showPage(name) {
     case 'stream-keys':  loadStreamKeys();   break;
     case 'recordings':   loadRecordings();   break;
     case 'users':        loadUsers();        break;
-    case 'code-review':  /* no auto-load */  break;
     case 'network':      loadNetwork();      break;
   }
 }
@@ -275,40 +274,6 @@ async function deleteUser(id) {
   }
 }
 
-// ── Code Review ───────────────────────────────────────────────────────────────
-async function submitReview() {
-  const content  = document.getElementById('reviewContent').value.trim();
-  const filename = document.getElementById('reviewFilename').value.trim();
-  const context  = document.getElementById('reviewContext').value.trim();
-
-  if (!content) { showToast('Please paste some code first', 'error'); return; }
-
-  const btn     = document.getElementById('reviewBtn');
-  const spinner = document.getElementById('review-spinner');
-  const result  = document.getElementById('review-result');
-  const output  = document.getElementById('review-output');
-  const meta    = document.getElementById('review-meta');
-
-  btn.disabled = true;
-  spinner.classList.remove('d-none');
-  result.classList.add('d-none');
-
-  try {
-    const data = await apiFetch('/admin/review', {
-      method: 'POST',
-      body: JSON.stringify({ content, filename: filename || undefined, context: context || undefined }),
-    });
-    output.textContent = data.review;
-    meta.textContent = `Model: ${data.model} · Input: ${data.usage?.input_tokens ?? '?'} tokens · Output: ${data.usage?.output_tokens ?? '?'} tokens`;
-    result.classList.remove('d-none');
-  } catch (err) {
-    showToast('Review failed: ' + err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    spinner.classList.add('d-none');
-  }
-}
-
 // ── HLS.js helpers ────────────────────────────────────────────────────────────
 function attachHls(videoId, streamKey) {
   const video = document.getElementById(videoId);
@@ -456,9 +421,6 @@ document.getElementById('batchImportBtn').addEventListener('click', async () => 
     resultEl.classList.remove('d-none');
   }
 });
-
-// ── Code Review event wiring ──────────────────────────────────────────────────
-document.getElementById('reviewBtn').addEventListener('click', submitReview);
 
 // ── Network ───────────────────────────────────────────────────────────────────
 const DEFAULT_NETWORKS = ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '127.0.0.1/32'];
