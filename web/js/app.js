@@ -562,6 +562,47 @@ document.getElementById('resetNetworkBtn').addEventListener('click', () => {
   showToast('Reset to defaults (not yet saved)');
 });
 
+// ── Export Stream Keys to Excel ───────────────────────────────────────────────
+async function exportStreamKeysExcel() {
+  const btn = document.getElementById('exportExcelBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>匯出中…';
+  try {
+    const keys = await apiFetch('/stream-keys');
+
+    const rows = keys.map(k => ({
+      '名稱': k.name,
+      '串流金鑰': k.key,
+      '描述': k.description || '',
+      '狀態': k.is_active ? '啟用' : '停用',
+      '建立時間': new Date(k.created_at).toLocaleString(),
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 20 },  // 名稱
+      { wch: 36 },  // 串流金鑰
+      { wch: 30 },  // 描述
+      { wch: 10 },  // 狀態
+      { wch: 22 },  // 建立時間
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Stream Keys');
+
+    const date = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `stream-keys-${date}.xlsx`);
+    showToast(`已匯出 ${keys.length} 筆串流金鑰`);
+  } catch (err) {
+    showToast('匯出失敗：' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-file-earmark-excel me-1"></i>匯出 Excel';
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 if (adminKey) document.getElementById('adminKeyInput').value = adminKey;
 showPage('dashboard');
