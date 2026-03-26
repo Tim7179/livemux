@@ -19,7 +19,7 @@ function validateEmail(email) {
   const trimmed = email.trim();
   if (trimmed.length > 254) throw Object.assign(new Error('`email` is too long'), { status: 400 });
   // Basic structural check only
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) throw Object.assign(new Error('`email` format is invalid'), { status: 400 });
+  if (!/^[^\s@]{1,64}@[^\s@]{1,255}\.[a-zA-Z]{2,}$/.test(trimmed)) throw Object.assign(new Error('`email` format is invalid'), { status: 400 });
   return trimmed;
 }
 

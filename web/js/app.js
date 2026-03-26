@@ -5,7 +5,7 @@ const API_BASE = '/api';
 const REFRESH_INTERVAL_MS = 10_000;
 
 // ── State ───────────────────────────────────────────────────────────────────
-let adminKey = localStorage.getItem('adminKey') || '';
+let adminKey = sessionStorage.getItem('adminKey') || '';
 const hlsInstances = new Map();   // streamKey → Hls instance
 
 // ── Bootstrap helpers ───────────────────────────────────────────────────────
@@ -353,7 +353,7 @@ document.querySelectorAll('#sidebar .nav-link').forEach(a => {
 
 document.getElementById('saveKeyBtn').addEventListener('click', () => {
   adminKey = document.getElementById('adminKeyInput').value.trim();
-  localStorage.setItem('adminKey', adminKey);
+  sessionStorage.setItem('adminKey', adminKey);
   showToast('Admin key saved');
   showPage('dashboard');
 });

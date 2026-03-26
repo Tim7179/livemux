@@ -34,7 +34,8 @@ function assertSafeFilename(filename) {
 function safeRecordingsPath(filename) {
   assertSafeFilename(filename);
   const resolved = path.resolve(RECORDINGS_DIR, filename);
-  if (!resolved.startsWith(path.resolve(RECORDINGS_DIR) + path.sep)) {
+  const base = path.resolve(RECORDINGS_DIR);
+  if (resolved !== base && !resolved.startsWith(base + path.sep)) {
     throw Object.assign(new Error('Invalid filename'), { status: 400 });
   }
   return resolved;

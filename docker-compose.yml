@@ -40,6 +40,7 @@ services:
       - ADMIN_API_KEY=${ADMIN_API_KEY:-change_me_in_production}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     depends_on:
       redis:
         condition: service_healthy
@@ -51,7 +52,11 @@ services:
   redis:
     image: redis:8-alpine
     container_name: livemux-redis
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    command: >-
+      redis-server
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      ${REDIS_PASSWORD:+--requirepass ${REDIS_PASSWORD}}
     volumes:
       - redis_data:/data
     healthcheck:

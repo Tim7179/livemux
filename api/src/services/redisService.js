@@ -9,13 +9,17 @@ let client = null;
 function getClient() {
   if (client) return client;
 
-  client = new Redis({
+  const opts = {
     host:             process.env.REDIS_HOST || 'redis',
     port:             parseInt(process.env.REDIS_PORT || '6379', 10),
     lazyConnect:      true,
     enableOfflineQueue: false,
     retryStrategy:    (times) => (times > 5 ? null : Math.min(times * 200, 2000)),
-  });
+  };
+  if (process.env.REDIS_PASSWORD) {
+    opts.password = process.env.REDIS_PASSWORD;
+  }
+  client = new Redis(opts);
 
   client.on('error', (err) => {
     // Log but don't crash – in-memory fallback is used when Redis is down
